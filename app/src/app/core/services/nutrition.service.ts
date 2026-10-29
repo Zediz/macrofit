@@ -114,14 +114,30 @@ export interface LogMathInput {
   quantity: number;
   unit: QuantityUnit;
   per100?: Macros;
+  /** Gramos de una porción del alimento. Obligatorio si unit es portions. */
+  servingGrams?: number | null;
   recipeTotal?: Macros;
   recipeServings?: number;
   recipeGrams?: number;
 }
 
+/** Gramos de un alimento. 1.5 porciones de 30 g = 45 g. Sin tamaño de porción no se asume 100 g. */
+export function resolveFoodGrams(quantity: number, unit: QuantityUnit, servingGrams?: number | null): number {
+  if (!(quantity > 0)) {
+    throw new Error('La cantidad debe ser mayor a 0');
+  }
+  if (unit === 'grams') {
+    return quantity;
+  }
+  if (!(servingGrams && servingGrams > 0)) {
+    throw new Error('Este alimento no tiene tamaño de porción');
+  }
+  return quantity * servingGrams;
+}
+
 /**
  * Alimento en gramos: regla de tres sobre 100 g.
- * Alimento en porciones: 1 porción = 100 g.
+ * Alimento en porciones: gramos = cantidad × tamaño de porción.
  * Receta en porciones: (total / porciones) × cantidad.
  * Receta en gramos: total × (gramos / gramos de la receta).
  */
@@ -133,8 +149,7 @@ export function logEntryMacros(input: LogMathInput): Macros {
     if (!input.per100) {
       throw new Error('Faltan los macros por 100 g');
     }
-    const grams = input.unit === 'portions' ? input.quantity * 100 : input.quantity;
-    return scalePer100g(input.per100, grams);
+    return scalePer100g(input.per100, resolveFoodGrams(input.quantity, input.unit, input.servingGrams));
   }
   if (!input.recipeTotal || !(input.recipeServings && input.recipeServings > 0)) {
     throw new Error('Faltan los totales de la receta');

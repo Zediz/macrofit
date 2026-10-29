@@ -70,22 +70,28 @@ class HTTP {
 		self::error(500, $errorMsg, $e);
 	}
 
-	// Excepciones con código 4xx (throw new Exception('...', 404)) se respetan; el resto es 500
+	// Excepciones con código 4xx (throw new Exception('...', 404)) se respetan; el resto es 500.
+	// 502, 503 y 504 conservan el mensaje: son errores operativos ya redactados (OCR, Gemini).
 	public static function fromException($e, $errorMsg = null) {
 		$code = (int) $e->getCode();
-		$status = ($code >= 400 && $code < 500) ? $code : 500;
+		if (in_array($code, array(502, 503, 504), true)) {
+			$status = $code;
+		} else {
+			$status = ($code >= 400 && $code < 500) ? $code : 500;
+		}
 		self::error($status, $errorMsg !== null ? $errorMsg : $e->getMessage(), $e);
 	}
 
 	public static function error($status, $errorMsg, $e = null) {
 		$debug = self::isDebug();
 		$response = array("success" => false, "body" => $errorMsg);
+		$keepMessage = in_array((int) $status, array(502, 503, 504), true);
 
 		if ($status >= 500) {
 			$errorId = bin2hex(random_bytes(4));
 			error_log("[$errorId] $errorMsg" . ($e ? ' | ' . self::summary($e) : ''));
 			$response["error_id"] = $errorId;
-			if (!$debug) {
+			if (!$debug && !$keepMessage) {
 				// En producción nunca se expone el detalle (SQL, rutas, credenciales)
 				$response["body"] = 'Error interno del servidor';
 			}

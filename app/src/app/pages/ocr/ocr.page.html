@@ -8,28 +8,29 @@
   <div class="screen">
     <p class="eyebrow">Producto nuevo</p>
     <h1>Foto de la etiqueta</h1>
-    <p class="lede">Toma la tabla nutrimental. Vas a revisar los números antes de que entren al catálogo.</p>
-    <ion-button expand="block" (click)="capture()">Abrir cámara</ion-button>
+    <p class="lede">Toma la tabla nutrimental. La leemos en el servidor y tú confirmas los números antes de guardarlos.</p>
+    <ion-button expand="block" (click)="capture()" [disabled]="reading()">
+      {{ reading() ? 'Leyendo etiqueta…' : 'Abrir cámara' }}
+    </ion-button>
 
     @if (photo(); as image) {
       <img class="shot" [src]="image" alt="Foto de la tabla nutrimental" />
     }
-    @if (simulated()) {
-      <div class="card warn">
-        <strong>Extracción de ejemplo</strong>
-        <p>El OCR todavía es un marcador de posición: no leyó la foto. Corrige nombre, marca y macros por 100 g antes de guardar.</p>
-      </div>
-    }
+    <div class="card warn">
+      <strong>Revisa antes de guardar</strong>
+      <p>Corrige el nombre, la porción y los valores por 100 g. La lectura automática puede equivocarse.</p>
+    </div>
 
     <form class="stack" (submit)="$event.preventDefault(); save()">
       <ion-input label="Nombre" labelPlacement="stacked" fill="outline" [value]="name()" (ionInput)="name.set(text($event))"></ion-input>
       <ion-input label="Marca" labelPlacement="stacked" fill="outline" [value]="brand()" (ionInput)="brand.set(text($event))"></ion-input>
       <ion-input label="Código de barras" labelPlacement="stacked" fill="outline" [value]="barcode()" (ionInput)="barcode.set(text($event))"></ion-input>
+      <ion-input label="Porción en gramos (opcional)" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="serving()" (ionInput)="serving.set(number($event))"></ion-input>
       <ion-input label="Kcal por 100 g" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="kcal()" (ionInput)="kcal.set(number($event))"></ion-input>
       <ion-input label="Proteína por 100 g" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="protein()" (ionInput)="protein.set(number($event))"></ion-input>
       <ion-input label="Carbohidratos por 100 g" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="carbs()" (ionInput)="carbs.set(number($event))"></ion-input>
       <ion-input label="Grasas por 100 g" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="fat()" (ionInput)="fat.set(number($event))"></ion-input>
-      <ion-button expand="block" type="submit" [disabled]="busy()">Guardar en el catálogo</ion-button>
+      <ion-button expand="block" type="submit" [disabled]="busy() || reading()">Guardar en el catálogo</ion-button>
     </form>
   </div>
 </ion-content>

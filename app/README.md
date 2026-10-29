@@ -12,7 +12,7 @@ npm start
 Sirve en `http://127.0.0.1:43123`. La API se configura en `src/environments/environment.ts`.
 
 ```bash
-npm test          # BMR, TDEE, macros, recetas, diario y mapeo de Open Food Facts
+npm test          # BMR, TDEE, macros, recetas, diario en gramos o porciones, OCR y Open Food Facts
 npm run build     # equivalente a ionic build
 ```
 
@@ -24,7 +24,7 @@ npm run build     # equivalente a ionic build
 | `/onboarding` | Sexo, edad, peso, altura, actividad y metas |
 | `/dashboard` | Día, anillo de kcal, barras y comidas |
 | `/add-food` | Búsqueda, escáner y registro |
-| `/ocr` | Foto de la tabla y revisión |
+| `/ocr` | Foto de la tabla, lectura con Gemini y revisión |
 | `/recipes` | Recetario |
 | `/recipes/new` y `/recipes/:id` | Editor con totales en vivo |
 | `/profile` | Peso, actividad y porcentajes |

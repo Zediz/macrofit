@@ -132,8 +132,45 @@ class Nutrition {
 	}
 
 	/**
+	 * Gramos reales de un alimento. En porciones hace falta serving_grams
+	 * (1.5 porciones de 30 g = 45 g). Sin ese dato no se asume 100 g.
+	 */
+	public static function foodGrams(string $unit, float $quantity, ?float $servingGrams): float {
+		if ($quantity <= 0) {
+			throw new Exception('La cantidad debe ser mayor a 0', 422);
+		}
+		if ($unit === 'grams') {
+			return self::round2($quantity);
+		}
+		if ($unit !== 'portions') {
+			throw new Exception('Unidad no válida', 422);
+		}
+		if ($servingGrams === null || $servingGrams <= 0) {
+			throw new Exception('Este alimento no tiene tamaño de porción. Regístralo en gramos.', 422);
+		}
+		return self::round2($quantity * $servingGrams);
+	}
+
+	/** Gramos que representa un registro de receta, para guardarlos en la foto del diario. */
+	public static function recipeSnapshotGrams(string $unit, float $quantity, float $servings, float $totalGrams): float {
+		if ($quantity <= 0) {
+			throw new Exception('La cantidad debe ser mayor a 0', 422);
+		}
+		if ($unit === 'grams') {
+			return self::round2($quantity);
+		}
+		if ($unit !== 'portions') {
+			throw new Exception('Unidad no válida', 422);
+		}
+		if ($servings <= 0 || $totalGrams <= 0) {
+			throw new Exception('La receta no tiene gramos para escalar', 422);
+		}
+		return self::round2($quantity * ($totalGrams / $servings));
+	}
+
+	/**
 	 * Alimento en gramos: (macro por 100 g / 100) * gramos.
-	 * Alimento en porciones: 1 porción = 100 g (el catálogo no guarda tamaño de porción).
+	 * Alimento en porciones: gramos = cantidad * serving_grams del alimento.
 	 * Receta en porciones: (totales / porciones de la receta) * cantidad.
 	 * Receta en gramos: totales * (gramos consumidos / gramos de la receta).
 	 */
@@ -144,7 +181,8 @@ class Nutrition {
 		?array $per100 = null,
 		?array $recipeTotals = null,
 		float $recipeServings = 0,
-		float $recipeGrams = 0
+		float $recipeGrams = 0,
+		?float $servingGrams = null
 	): array {
 		if ($quantity <= 0) {
 			throw new Exception('La cantidad debe ser mayor a 0', 422);
@@ -156,8 +194,7 @@ class Nutrition {
 			if ($per100 === null) {
 				throw new Exception('Faltan los macros por 100 g', 422);
 			}
-			$grams = $unit === 'portions' ? $quantity * 100 : $quantity;
-			return self::scalePer100g($per100, $grams);
+			return self::scalePer100g($per100, self::foodGrams($unit, $quantity, $servingGrams));
 		}
 		if ($kind === 'recipe') {
 			if ($recipeTotals === null || $recipeServings <= 0) {

@@ -52,29 +52,41 @@ class DailyLog {
 		}
 		if ($hasFood) {
 			$foodId = filter_var($foodId, FILTER_VALIDATE_INT);
-			if ($foodId === false || !(new Food())->findById((int) $foodId)) {
+			$food = $foodId === false ? null : (new Food())->findById((int) $foodId);
+			if (!$food) {
 				throw new Exception('Alimento no encontrado', 404);
 			}
 			$recipeId = null;
+			$snapshot = $this->foodSnapshot($food, $unit, (float) $quantity);
 		} else {
 			$recipeId = filter_var($recipeId, FILTER_VALIDATE_INT);
-			if ($recipeId === false || !(new Recipe())->findOwned($userId, (int) $recipeId)) {
+			$recipe = $recipeId === false ? null : (new Recipe())->findOwned($userId, (int) $recipeId);
+			if (!$recipe) {
 				throw new Exception('Receta no encontrada', 404);
 			}
 			$foodId = null;
+			$snapshot = $this->recipeSnapshot($recipe, $unit, (float) $quantity);
 		}
 		$stmt = $this->db->prepare(
-			'INSERT INTO daily_logs (user_id, food_id, recipe_id, quantity, unit, meal_type, log_date)
-			 VALUES (:user_id, :food_id, :recipe_id, :quantity, :unit, :meal_type, :log_date)'
+			'INSERT INTO daily_logs
+				(user_id, food_id, recipe_id, item_name, quantity, grams, unit, meal_type, log_date, kcal, protein, carbs, fat)
+			 VALUES
+				(:user_id, :food_id, :recipe_id, :item_name, :quantity, :grams, :unit, :meal_type, :log_date, :kcal, :protein, :carbs, :fat)'
 		);
 		$stmt->execute(array(
 			'user_id' => $userId,
 			'food_id' => $foodId,
 			'recipe_id' => $recipeId,
-			'quantity' => round((float) $quantity, 2),
-			'unit' => $unit,
+			'item_name' => $snapshot['name'],
+			'quantity' => $snapshot['quantity'],
+			'grams' => $snapshot['grams'],
+			'unit' => $snapshot['unit'],
 			'meal_type' => $meal,
 			'log_date' => $date,
+			'kcal' => $snapshot['kcal'],
+			'protein' => $snapshot['protein'],
+			'carbs' => $snapshot['carbs'],
+			'fat' => $snapshot['fat'],
 		));
 		$created = $this->findOwned($userId, (int) $this->db->lastInsertId());
 		if (!$created) {
@@ -119,61 +131,100 @@ class DailyLog {
 		);
 	}
 
-	private function selectSql(): string {
-		return 'SELECT l.id, l.user_id, l.food_id, l.recipe_id, l.quantity, l.unit, l.meal_type, l.log_date,
-			f.name AS food_name, f.brand AS food_brand,
-			f.kcal_per_100g, f.protein_per_100g, f.carbs_per_100g, f.fat_per_100g,
-			r.name AS recipe_name, r.servings AS recipe_servings,
-			r.total_kcal, r.total_protein, r.total_carbs, r.total_fat,
-			(SELECT COALESCE(SUM(ri.grams), 0) FROM recipe_ingredients ri WHERE ri.recipe_id = l.recipe_id) AS recipe_grams
-			FROM daily_logs l
-			LEFT JOIN foods f ON f.id = l.food_id
-			LEFT JOIN recipes r ON r.id = l.recipe_id';
+	private function foodSnapshot(array $food, string $unit, float $quantity): array {
+		$per100 = array(
+			'kcal' => $food['kcal_per_100g'],
+			'protein' => $food['protein_per_100g'],
+			'carbs' => $food['carbs_per_100g'],
+			'fat' => $food['fat_per_100g'],
+		);
+		$grams = Nutrition::foodGrams($unit, $quantity, $food['serving_grams']);
+		$macros = Nutrition::scalePer100g($per100, $grams);
+		return array(
+			'name' => $this->snapshotName($food['name']),
+			'quantity' => $grams,
+			'grams' => $grams,
+			'unit' => 'grams',
+			'kcal' => $macros['kcal'],
+			'protein' => $macros['protein'],
+			'carbs' => $macros['carbs'],
+			'fat' => $macros['fat'],
+		);
 	}
 
-	private function present(array $row): array {
-		if ($row['food_id'] !== null) {
-			$macros = Nutrition::logMacros('food', $row['unit'], (float) $row['quantity'], array(
-				'kcal' => (float) $row['kcal_per_100g'],
-				'protein' => (float) $row['protein_per_100g'],
-				'carbs' => (float) $row['carbs_per_100g'],
-				'fat' => (float) $row['fat_per_100g'],
-			));
-			$name = $row['food_name'];
-			$brand = $row['food_brand'];
-		} else {
-			$macros = Nutrition::logMacros(
-				'recipe',
-				$row['unit'],
-				(float) $row['quantity'],
-				null,
-				array(
-					'kcal' => (float) $row['total_kcal'],
-					'protein' => (float) $row['total_protein'],
-					'carbs' => (float) $row['total_carbs'],
-					'fat' => (float) $row['total_fat'],
-				),
-				(float) $row['recipe_servings'],
-				(float) $row['recipe_grams']
-			);
-			$name = $row['recipe_name'];
-			$brand = null;
+	private function recipeSnapshot(array $recipe, string $unit, float $quantity): array {
+		$totals = array(
+			'kcal' => $recipe['total_kcal'],
+			'protein' => $recipe['total_protein'],
+			'carbs' => $recipe['total_carbs'],
+			'fat' => $recipe['total_fat'],
+		);
+		$macros = Nutrition::logMacros(
+			'recipe',
+			$unit,
+			$quantity,
+			null,
+			$totals,
+			(float) $recipe['servings'],
+			(float) $recipe['total_grams']
+		);
+		$grams = Nutrition::recipeSnapshotGrams(
+			$unit,
+			$quantity,
+			(float) $recipe['servings'],
+			(float) $recipe['total_grams']
+		);
+		return array(
+			'name' => $this->snapshotName($recipe['name']),
+			'quantity' => round($quantity, 2),
+			'grams' => $grams,
+			'unit' => $unit,
+			'kcal' => $macros['kcal'],
+			'protein' => $macros['protein'],
+			'carbs' => $macros['carbs'],
+			'fat' => $macros['fat'],
+		);
+	}
+
+	private function snapshotName(string $name): string {
+		$name = trim($name);
+		if ($name === '') {
+			throw new Exception('El registro no tiene nombre', 422);
 		}
+		if (mb_strlen($name) > 255) {
+			$name = mb_substr($name, 0, 255);
+		}
+		return $name;
+	}
+
+	private function selectSql(): string {
+		return 'SELECT l.id, l.user_id, l.food_id, l.recipe_id, l.item_name, l.quantity, l.grams, l.unit,
+			l.meal_type, l.log_date, l.kcal, l.protein, l.carbs, l.fat, f.brand AS food_brand
+			FROM daily_logs l
+			LEFT JOIN foods f ON f.id = l.food_id';
+	}
+
+	/**
+	 * Nombre, gramos y macros salen de las columnas guardadas al crear el registro.
+	 * No se vuelven a calcular con el alimento o la receta actuales.
+	 */
+	private function present(array $row): array {
 		return array(
 			'id' => (int) $row['id'],
 			'user_id' => (int) $row['user_id'],
 			'food_id' => $row['food_id'] !== null ? (int) $row['food_id'] : null,
 			'recipe_id' => $row['recipe_id'] !== null ? (int) $row['recipe_id'] : null,
 			'quantity' => (float) $row['quantity'],
+			'grams' => (float) $row['grams'],
 			'unit' => $row['unit'],
 			'meal_type' => $row['meal_type'],
 			'log_date' => $row['log_date'],
-			'name' => $name,
-			'brand' => $brand,
-			'kcal' => $macros['kcal'],
-			'protein' => $macros['protein'],
-			'carbs' => $macros['carbs'],
-			'fat' => $macros['fat'],
+			'name' => $row['item_name'],
+			'brand' => $row['food_brand'] ?? null,
+			'kcal' => (float) $row['kcal'],
+			'protein' => (float) $row['protein'],
+			'carbs' => (float) $row['carbs'],
+			'fat' => (float) $row['fat'],
 		);
 	}
 }

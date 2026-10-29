@@ -22,8 +22,33 @@ describe('Open Food Facts', () => {
       protein_per_100g: 3.5,
       carbs_per_100g: 4.7,
       fat_per_100g: 3.3,
+      serving_grams: null,
       source: 'openfoodfacts',
     });
+  });
+
+  it('guarda los gramos de la porción y no trata los mililitros como gramos', () => {
+    const withGrams = mapOpenFoodFactsProduct('1', {
+      product_name: 'Galleta',
+      serving_quantity: 30,
+      serving_quantity_unit: 'g',
+      nutriments: { 'energy-kcal_100g': 400, proteins_100g: 5, carbohydrates_100g: 60, fat_100g: 15 },
+    });
+    const fromText = mapOpenFoodFactsProduct('2', {
+      product_name: 'Barrita',
+      serving_size: '1 barrita (40 g)',
+      nutriments: { 'energy-kcal_100g': 400, proteins_100g: 5, carbohydrates_100g: 60, fat_100g: 15 },
+    });
+    const millilitres = mapOpenFoodFactsProduct('3', {
+      product_name: 'Jugo',
+      serving_quantity: 250,
+      serving_quantity_unit: 'ml',
+      serving_size: '250 ml',
+      nutriments: { 'energy-kcal_100g': 40, proteins_100g: 0, carbohydrates_100g: 10, fat_100g: 0 },
+    });
+    expect(withGrams?.serving_grams).toBe(30);
+    expect(fromText?.serving_grams).toBe(40);
+    expect(millilitres?.serving_grams).toBeNull();
   });
 
   it('convierte energía en kJ cuando no hay kcal', () => {

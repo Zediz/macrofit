@@ -12,7 +12,7 @@ import {
 } from '@ionic/angular';
 import { FoodService } from '../../core/services/food.service';
 import { NotifyService } from '../../core/services/notify.service';
-import { OcrService } from '../../core/services/ocr.service';
+import { OcrLabel, OcrService } from '../../core/services/ocr.service';
 import { apiErrorMessage, inputNumber, inputText } from '../../core/utils/format';
 
 @Component({
@@ -28,35 +28,37 @@ export class OcrPage {
   private readonly notify = inject(NotifyService);
 
   readonly photo = signal<string | null>(null);
-  readonly simulated = signal(false);
   readonly name = signal('');
   readonly brand = signal('');
   readonly barcode = signal(this.route.snapshot.queryParamMap.get('barcode') ?? '');
+  readonly serving = signal<number | null>(null);
   readonly kcal = signal<number | null>(null);
   readonly protein = signal<number | null>(null);
   readonly carbs = signal<number | null>(null);
   readonly fat = signal<number | null>(null);
+  readonly reading = signal(false);
   readonly busy = signal(false);
   readonly text = inputText;
   readonly number = inputNumber;
 
   async capture(): Promise<void> {
+    this.reading.set(true);
     try {
-      const image = await this.ocr.capture();
-      const draft = this.ocr.extract(image);
+      const raw = await this.ocr.takePhoto();
+      const image = await this.ocr.compress(raw);
       this.photo.set(image);
-      this.simulated.set(draft.simulated);
-      this.name.set(draft.name);
-      this.brand.set(draft.brand);
-      if (!this.barcode()) {
-        this.barcode.set(draft.barcode);
-      }
-      this.kcal.set(draft.kcal_per_100g);
-      this.protein.set(draft.protein_per_100g);
-      this.carbs.set(draft.carbs_per_100g);
-      this.fat.set(draft.fat_per_100g);
+      this.name.set('');
+      this.brand.set('');
+      this.serving.set(null);
+      this.kcal.set(null);
+      this.protein.set(null);
+      this.carbs.set(null);
+      this.fat.set(null);
+      this.apply(await this.ocr.readLabel(image));
     } catch (error) {
-      void this.notify.show(apiErrorMessage(error, 'No se pudo abrir la cámara.'), 'danger');
+      void this.notify.show(apiErrorMessage(error, 'No se pudo leer la etiqueta.'), 'danger');
+    } finally {
+      this.reading.set(false);
     }
   }
 
@@ -66,8 +68,13 @@ export class OcrPage {
     const protein = this.protein();
     const carbs = this.carbs();
     const fat = this.fat();
+    const serving = this.serving();
     if (!name || kcal == null || protein == null || carbs == null || fat == null) {
       void this.notify.show('Revisa nombre y los cuatro valores por 100 g.', 'danger');
+      return;
+    }
+    if (serving != null && !(serving > 0)) {
+      void this.notify.show('La porción en gramos debe ser mayor a 0, o déjala vacía.', 'danger');
       return;
     }
     this.busy.set(true);
@@ -80,6 +87,7 @@ export class OcrPage {
         protein_per_100g: protein,
         carbs_per_100g: carbs,
         fat_per_100g: fat,
+        serving_grams: serving != null && serving > 0 ? serving : null,
         source: 'ocr',
       })
       .subscribe({
@@ -96,5 +104,14 @@ export class OcrPage {
           void this.notify.show(apiErrorMessage(error), 'danger');
         },
       });
+  }
+
+  private apply(label: OcrLabel): void {
+    this.name.set(label.name ?? '');
+    this.serving.set(label.serving_grams);
+    this.kcal.set(label.kcal_per_100g);
+    this.protein.set(label.protein_per_100g);
+    this.carbs.set(label.carbs_per_100g);
+    this.fat.set(label.fat_per_100g);
   }
 }

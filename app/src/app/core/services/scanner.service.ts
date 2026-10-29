@@ -12,6 +12,9 @@ export interface OffProduct {
   product_name_es?: string;
   product_name_en?: string;
   brands?: string;
+  serving_size?: string;
+  serving_quantity?: number | string;
+  serving_quantity_unit?: string;
   nutriments?: Record<string, unknown>;
 }
 
@@ -127,8 +130,34 @@ export function mapOpenFoodFactsProduct(barcode: string, product: OffProduct): C
     protein_per_100g: roundNutrient(protein),
     carbs_per_100g: roundNutrient(carbs),
     fat_per_100g: roundNutrient(fat),
+    serving_grams: servingGramsFromOff(product),
     source: 'openfoodfacts',
   };
+}
+
+/** Gramos de la porción si Open Food Facts los declara. Los mililitros no se convierten. */
+export function servingGramsFromOff(product: OffProduct): number | null {
+  const unit = (product.serving_quantity_unit ?? '').trim().toLowerCase();
+  const quantity = pickNumber(product.serving_quantity);
+  if (quantity != null && quantity > 0 && quantity <= 5000 && ['g', 'gr', 'gram', 'grams', 'gramo', 'gramos'].includes(unit)) {
+    return roundNutrient(quantity);
+  }
+  return gramsInText(product.serving_size);
+}
+
+function gramsInText(value: unknown): number | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const matches = [...value.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:g|gr|gramos)\b/gi)];
+  if (matches.length === 0) {
+    return null;
+  }
+  const parsed = Number(matches[matches.length - 1][1].replace(',', '.'));
+  if (!(parsed > 0) || parsed > 5000) {
+    return null;
+  }
+  return roundNutrient(parsed);
 }
 
 function pickNumber(value: unknown): number | null {

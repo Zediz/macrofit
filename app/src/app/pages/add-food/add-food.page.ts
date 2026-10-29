@@ -21,11 +21,15 @@ import { DiaryState } from '../../core/services/diary.service';
 import { FoodPickerService } from '../../core/services/food-picker.service';
 import { FoodService } from '../../core/services/food.service';
 import { NotifyService } from '../../core/services/notify.service';
-import { NutritionService } from '../../core/services/nutrition.service';
+import { NutritionService, resolveFoodGrams } from '../../core/services/nutrition.service';
 import { RecipeService } from '../../core/services/recipe.service';
 import { ScannerService } from '../../core/services/scanner.service';
 import { TrackingService } from '../../core/services/tracking.service';
 import { apiErrorMessage, formatGrams, formatKcal, inputNumber, inputText, sourceLabel } from '../../core/utils/format';
+
+function amount(value: number): string {
+  return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(value);
+}
 
 type Target = { kind: 'food'; food: Food } | { kind: 'recipe'; recipe: Recipe };
 
@@ -70,6 +74,33 @@ export class AddFoodPage {
   readonly grams = formatGrams;
   readonly sourceLabel = sourceLabel;
 
+  readonly quantityLabel = computed(() => (this.unit() === 'portions' ? 'Porciones' : 'Gramos'));
+  readonly showUnitToggle = computed(() => {
+    const target = this.target();
+    if (!target) {
+      return false;
+    }
+    if (target.kind === 'recipe') {
+      return true;
+    }
+    return !!(target.food.serving_grams && target.food.serving_grams > 0);
+  });
+  readonly portionHint = computed(() => {
+    const target = this.target();
+    if (!target || target.kind !== 'food') {
+      return null;
+    }
+    const serving = target.food.serving_grams;
+    if (!(serving && serving > 0)) {
+      return 'Los alimentos se registran en gramos.';
+    }
+    const quantity = this.quantity();
+    if (this.unit() === 'portions' && quantity && quantity > 0) {
+      return `1 porción = ${amount(serving)} g. ${amount(quantity)} porciones equivalen a ${amount(quantity * serving)} g.`;
+    }
+    return `1 porción = ${amount(serving)} g.`;
+  });
+
   readonly preview = computed(() => {
     const target = this.target();
     const quantity = this.quantity();
@@ -77,10 +108,16 @@ export class AddFoodPage {
       return null;
     }
     if (target.kind === 'food') {
+      let grams: number;
+      try {
+        grams = resolveFoodGrams(quantity, this.unit(), target.food.serving_grams);
+      } catch {
+        return null;
+      }
       return this.nutrition.logEntry({
         kind: 'food',
-        quantity,
-        unit: this.unit(),
+        quantity: grams,
+        unit: 'grams',
         per100: {
           kcal: target.food.kcal_per_100g,
           protein: target.food.protein_per_100g,
@@ -208,6 +245,27 @@ export class AddFoodPage {
     this.target.set(null);
   }
 
+  setUnit(next: QuantityUnit): void {
+    const target = this.target();
+    const current = this.unit();
+    if (!target || next === current) {
+      this.unit.set(next);
+      return;
+    }
+    if (target.kind === 'recipe') {
+      this.unit.set(next);
+      return;
+    }
+    const serving = target.food.serving_grams;
+    const quantity = this.quantity();
+    if (!(serving && serving > 0) || quantity == null) {
+      return;
+    }
+    const converted = next === 'portions' ? quantity / serving : quantity * serving;
+    this.quantity.set(Math.round(converted * 100) / 100);
+    this.unit.set(next);
+  }
+
   goRecipes(): void {
     void this.router.navigateByUrl('/recipes');
   }
@@ -229,13 +287,24 @@ export class AddFoodPage {
       void this.notify.show('Indica una cantidad mayor a 0.', 'danger');
       return;
     }
+    let quantityToSave = quantity;
+    let unitToSave = this.unit();
+    if (target.kind === 'food') {
+      try {
+        quantityToSave = resolveFoodGrams(quantity, unitToSave, target.food.serving_grams);
+      } catch (error) {
+        void this.notify.show(error instanceof Error ? error.message : 'Indica una cantidad mayor a 0.', 'danger');
+        return;
+      }
+      unitToSave = 'grams';
+    }
     this.saving.set(true);
     this.tracking
       .add({
         food_id: target.kind === 'food' ? target.food.id : undefined,
         recipe_id: target.kind === 'recipe' ? target.recipe.id : undefined,
-        quantity,
-        unit: this.unit(),
+        quantity: quantityToSave,
+        unit: unitToSave,
         meal_type: this.meal(),
         log_date: this.diary.date(),
       })
