@@ -1,0 +1,92 @@
+<ion-header class="mf-header">
+  <ion-toolbar>
+    <ion-title>Macrofit</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="screen">
+    <div class="day-switch">
+      <button type="button" class="round-button" (click)="shift(-1)" aria-label="Día anterior">‹</button>
+      <div>
+        <p class="eyebrow">Tu día</p>
+        <h1>{{ title() }}</h1>
+      </div>
+      <button type="button" class="round-button" (click)="shift(1)" aria-label="Día siguiente">›</button>
+    </div>
+
+    @if (loading()) {
+      <p class="state">Cargando tu día…</p>
+    } @else if (error()) {
+      <div class="state">
+        <p>{{ error() }}</p>
+        <button type="button" class="text-button" (click)="load()">Reintentar</button>
+      </div>
+    } @else if (summary(); as day) {
+      <section class="hero">
+        <div class="ring" [class.over]="day.goals.kcal > 0 && day.consumed.kcal > day.goals.kcal">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="track" cx="60" cy="60" r="52"></circle>
+            <circle class="value" cx="60" cy="60" r="52" [attr.stroke-dasharray]="circumference" [attr.stroke-dashoffset]="ringOffset(day.consumed.kcal, day.goals.kcal)"></circle>
+          </svg>
+          <div class="ring-copy">
+            <strong>{{ kcal(day.consumed.kcal) }}</strong>
+            <span>de {{ kcal(day.goals.kcal) }} kcal</span>
+          </div>
+        </div>
+        <div class="macro-list">
+          <div class="macro protein">
+            <div class="macro-top"><span>Proteína</span><span>{{ grams(day.consumed.protein) }} / {{ grams(day.goals.protein) }} g</span></div>
+            <div class="bar"><span [style.width.%]="bar(day.consumed.protein, day.goals.protein)"></span></div>
+            <small>{{ remainingText(day.remaining.protein, 'g') }}</small>
+          </div>
+          <div class="macro carbs">
+            <div class="macro-top"><span>Carbos</span><span>{{ grams(day.consumed.carbs) }} / {{ grams(day.goals.carbs) }} g</span></div>
+            <div class="bar"><span [style.width.%]="bar(day.consumed.carbs, day.goals.carbs)"></span></div>
+            <small>{{ remainingText(day.remaining.carbs, 'g') }}</small>
+          </div>
+          <div class="macro fat">
+            <div class="macro-top"><span>Grasas</span><span>{{ grams(day.consumed.fat) }} / {{ grams(day.goals.fat) }} g</span></div>
+            <div class="bar"><span [style.width.%]="bar(day.consumed.fat, day.goals.fat)"></span></div>
+            <small>{{ remainingText(day.remaining.fat, 'g') }}</small>
+          </div>
+          <p class="hint">{{ remainingText(day.remaining.kcal, 'kcal') }}</p>
+        </div>
+      </section>
+
+      @for (meal of grouped(); track meal.id) {
+        <section class="meal">
+          <header>
+            <div>
+              <h2>{{ meal.label }}</h2>
+              <button type="button" (click)="add(meal.id)">Añadir</button>
+            </div>
+            <span>{{ kcal(meal.kcal) }} kcal</span>
+          </header>
+          @if (meal.items.length === 0) {
+            <p class="empty">Nada en {{ meal.label.toLowerCase() }}.</p>
+          } @else {
+            @for (item of meal.items; track item.id) {
+              <article class="log-item">
+                <div>
+                  <strong>{{ item.name }}</strong>
+                  <p>{{ item.quantity }} {{ item.unit === 'grams' ? 'g' : 'porciones' }} · {{ kcal(item.kcal) }} kcal</p>
+                  <p class="muted">P {{ grams(item.protein) }} · C {{ grams(item.carbs) }} · G {{ grams(item.fat) }}</p>
+                </div>
+                <button type="button" class="icon-button" (click)="remove(item)" [attr.aria-label]="'Quitar ' + item.name">
+                  <ion-icon name="trash-outline"></ion-icon>
+                </button>
+              </article>
+            }
+          }
+        </section>
+      }
+    }
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="add()" aria-label="Añadir alimento">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

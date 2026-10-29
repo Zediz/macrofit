@@ -1,0 +1,45 @@
+import { describe, expect, it } from 'vitest';
+import { mapOpenFoodFactsProduct } from './scanner.service';
+
+describe('Open Food Facts', () => {
+  it('mapea nutriments por 100 g y prefiere el nombre en español', () => {
+    const food = mapOpenFoodFactsProduct('7501234567890', {
+      product_name: 'Yogurt',
+      product_name_es: 'Yogurt natural',
+      brands: 'Lala, otra',
+      nutriments: {
+        'energy-kcal_100g': 62,
+        proteins_100g: 3.5,
+        carbohydrates_100g: '4.7',
+        fat_100g: 3.3,
+      },
+    });
+    expect(food).toMatchObject({
+      name: 'Yogurt natural',
+      brand: 'Lala',
+      barcode: '7501234567890',
+      kcal_per_100g: 62,
+      protein_per_100g: 3.5,
+      carbs_per_100g: 4.7,
+      fat_per_100g: 3.3,
+      source: 'openfoodfacts',
+    });
+  });
+
+  it('convierte energía en kJ cuando no hay kcal', () => {
+    const food = mapOpenFoodFactsProduct('1234', {
+      product_name: 'Avena',
+      nutriments: {
+        energy_100g: 418.4,
+        proteins_100g: 10,
+        carbohydrates_100g: 60,
+        fat_100g: 7,
+      },
+    });
+    expect(food?.kcal_per_100g).toBeCloseTo(100, 5);
+  });
+
+  it('regresa null si falta la tabla por 100 g', () => {
+    expect(mapOpenFoodFactsProduct('1234', { product_name: 'Sin datos', nutriments: { proteins_100g: 1 } })).toBeNull();
+  });
+});

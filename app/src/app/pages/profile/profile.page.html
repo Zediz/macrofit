@@ -1,0 +1,65 @@
+<ion-header class="mf-header">
+  <ion-toolbar>
+    <ion-title>Perfil</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <div class="screen">
+    @if (user(); as person) {
+      <p class="eyebrow">{{ person.email }}</p>
+      <h1>{{ person.name }}</h1>
+      <p class="lede">
+        {{ person.gender === 'male' ? 'Hombre' : 'Mujer' }} · {{ person.age }} años · {{ person.height_cm }} cm · {{ activityLabel(person.activity_level) }}
+      </p>
+
+      @if (preview(); as plan) {
+        <div class="stat-grid">
+          <article class="stat"><span>BMR</span><strong>{{ kcal(plan.bmr) }}</strong><small>kcal</small></article>
+          <article class="stat accent"><span>TDEE</span><strong>{{ kcal(plan.tdee) }}</strong><small>kcal meta</small></article>
+          @if (plan.goals) {
+            <article class="stat"><span>Proteína</span><strong>{{ grams(plan.goals.protein) }} g</strong></article>
+            <article class="stat"><span>Carbos</span><strong>{{ grams(plan.goals.carbs) }} g</strong></article>
+            <article class="stat"><span>Grasas</span><strong>{{ grams(plan.goals.fat) }} g</strong></article>
+          }
+        </div>
+      }
+
+      <section class="card">
+        <h2>Peso y actividad</h2>
+        <p class="hint">Al guardar, el servidor recalcula BMR, gasto diario y macros.</p>
+        <ion-input label="Nombre" labelPlacement="stacked" fill="outline" [value]="name()" (ionInput)="name.set(text($event))"></ion-input>
+        <ion-input label="Peso actual (kg)" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="weight()" (ionInput)="weight.set(number($event))"></ion-input>
+        <div class="choice-list">
+          @for (item of activities; track item.id) {
+            <button type="button" class="choice wide" [class.active]="activity() === item.id" (click)="activity.set(item.id)">
+              <strong>{{ item.label }}</strong>
+              <span>{{ item.hint }}</span>
+            </button>
+          }
+        </div>
+        <ion-button expand="block" (click)="saveBody()" [disabled]="busy()">Actualizar y recalcular</ion-button>
+      </section>
+
+      <section class="card">
+        <div class="top-row">
+          <h2>Macros manuales</h2>
+          <button type="button" class="text-button" (click)="custom.set(!custom())">{{ custom() ? 'Usar automático' : 'Personalizar' }}</button>
+        </div>
+        @if (!custom()) {
+          <p>Proteína 2 g por kg, grasas al 25 % de las calorías y carbohidratos con lo que queda.</p>
+        } @else {
+          <p class="hint">Porcentajes de las calorías. Deben sumar 100. Ahora suman {{ grams(percentSum()) }}.</p>
+          <ion-input label="Proteína %" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="proteinPct()" (ionInput)="proteinPct.set(number($event))"></ion-input>
+          <ion-input label="Carbohidratos %" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="carbsPct()" (ionInput)="carbsPct.set(number($event))"></ion-input>
+          <ion-input label="Grasas %" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="fatPct()" (ionInput)="fatPct.set(number($event))"></ion-input>
+        }
+        <ion-button expand="block" fill="outline" (click)="saveMacros()" [disabled]="busy()">Guardar reparto</ion-button>
+      </section>
+
+      <ion-button expand="block" fill="clear" color="danger" (click)="logout()">
+        <ion-icon slot="start" name="log-out-outline"></ion-icon>
+        Cerrar sesión
+      </ion-button>
+    }
+  </div>
+</ion-content>

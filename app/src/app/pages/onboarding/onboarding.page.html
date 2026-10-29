@@ -1,0 +1,67 @@
+<ion-content>
+  <div class="screen">
+    <div class="top-row">
+      <p class="eyebrow">Paso {{ step() + 1 }} de 6</p>
+      <button type="button" class="text-button" (click)="leave()">Salir</button>
+    </div>
+    <div class="progress" aria-hidden="true"><span [style.width.%]="((step() + 1) / 6) * 100"></span></div>
+
+    @switch (step()) {
+      @case (0) {
+        <h1>¿Cómo calculamos tu metabolismo?</h1>
+        <p class="lede">La fórmula de Mifflin-St Jeor usa el sexo biológico para el metabolismo basal.</p>
+        <div class="choice-grid">
+          <button type="button" class="choice" [class.active]="gender() === 'female'" (click)="gender.set('female')">Mujer</button>
+          <button type="button" class="choice" [class.active]="gender() === 'male'" (click)="gender.set('male')">Hombre</button>
+        </div>
+      }
+      @case (1) {
+        <h1>¿Cuántos años tienes?</h1>
+        <ion-input label="Edad" labelPlacement="stacked" fill="outline" type="number" inputmode="numeric" [value]="age()" (ionInput)="age.set(number($event))"></ion-input>
+      }
+      @case (2) {
+        <h1>¿Cuánto pesas hoy?</h1>
+        <p class="lede">Lo podrás actualizar después. Cada cambio recalcula tus metas.</p>
+        <ion-input label="Peso (kg)" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="weight()" (ionInput)="weight.set(number($event))"></ion-input>
+      }
+      @case (3) {
+        <h1>¿Cuánto mides?</h1>
+        <ion-input label="Altura (cm)" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="height()" (ionInput)="height.set(number($event))"></ion-input>
+      }
+      @case (4) {
+        <h1>¿Qué tan activo es tu día?</h1>
+        <div class="choice-list">
+          @for (item of activities; track item.id) {
+            <button type="button" class="choice wide" [class.active]="activity() === item.id" (click)="activity.set(item.id)">
+              <strong>{{ item.label }}</strong>
+              <span>{{ item.hint }}</span>
+            </button>
+          }
+        </div>
+      }
+      @default {
+        <h1>Tus metas de hoy</h1>
+        @if (preview(); as plan) {
+          <div class="stat-grid">
+            <article class="stat"><span>Metabolismo basal</span><strong>{{ kcal(plan.bmr) }}</strong><small>kcal</small></article>
+            <article class="stat accent"><span>Gasto diario</span><strong>{{ kcal(plan.tdee) }}</strong><small>kcal meta</small></article>
+            <article class="stat"><span>Proteína</span><strong>{{ grams(plan.goals.protein) }} g</strong><small>2 g por kg</small></article>
+            <article class="stat"><span>Grasas</span><strong>{{ grams(plan.goals.fat) }} g</strong><small>25 % de las kcal</small></article>
+            <article class="stat wide"><span>Carbohidratos</span><strong>{{ grams(plan.goals.carbs) }} g</strong><small>el resto de la energía</small></article>
+          </div>
+        }
+      }
+    }
+
+    <div class="action-row">
+      @if (step() > 0) {
+        <ion-button fill="clear" (click)="back()">Atrás</ion-button>
+      }
+      @if (step() < 5) {
+        <ion-button (click)="next()">Continuar</ion-button>
+      } @else {
+        <ion-button (click)="save()" [disabled]="busy()">Guardar mis metas</ion-button>
+      }
+    </div>
+  </div>
+</ion-content>

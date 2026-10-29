@@ -1,0 +1,19 @@
+# MySQL local para el docker-compose.yml de la arquitectura.
+# Ese archivo espera un servicio llamado "mysql" en la red externa app-network
+# y no lo define a propósito. Este archivo solo existe para desarrollo.
+name: macrofit-mysql
+services:
+    mysql:
+        image: mysql:8
+        container_name: mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: root_password
+            MYSQL_DATABASE: macrofit
+        ports:
+            - "33060:3306"
+        command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        networks:
+            - app-network
+networks:
+    app-network:
+        external: true

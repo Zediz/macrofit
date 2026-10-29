@@ -1,0 +1,438 @@
+@import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+html,
+body {
+  background: #e7e0d2;
+}
+
+ion-app {
+  --background: #f4efe6;
+}
+
+@media (min-width: 840px) {
+  ion-app {
+    max-width: 430px;
+    margin: 28px auto;
+    min-height: calc(100vh - 56px);
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 24px 70px rgba(48, 36, 18, 0.18);
+    border: 1px solid #ddd3c2;
+  }
+}
+
+ion-toolbar {
+  --background: transparent;
+  --border-width: 0;
+}
+
+ion-title {
+  font-family: var(--mf-serif);
+}
+
+ion-content {
+  --background: #f4efe6;
+}
+
+.screen,
+.auth-wrap {
+  padding: 12px 20px 112px;
+}
+
+.auth-screen {
+  --background: #efe7d8;
+}
+
+.auth-wrap h1,
+.screen h1,
+.day-switch h1 {
+  font-family: var(--mf-serif);
+  font-size: 2rem;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 0 0 8px;
+  color: var(--mf-ink);
+}
+
+.screen h2,
+.card h2 {
+  font-family: var(--mf-serif);
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--mf-clay);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lede,
+.hint,
+.muted,
+.empty,
+.state {
+  color: var(--mf-muted);
+}
+
+.lede {
+  margin-top: 0;
+  font-size: 1.02rem;
+}
+
+.brand-mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: #1d6b45;
+  color: #f6f1e6;
+  font-family: var(--mf-serif);
+  font-size: 1.7rem;
+  margin-bottom: 18px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.top-row,
+.day-switch,
+.action-row,
+.macro-top,
+.meal header,
+.recipe-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.day-switch {
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+
+.day-switch h1 {
+  font-size: 1.55rem;
+}
+
+.progress {
+  height: 6px;
+  background: #e5dccb;
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 8px 0 18px;
+}
+
+.progress span,
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.progress span {
+  background: #1d6b45;
+}
+
+.choice-grid,
+.choice-list {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.choice-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.choice-grid.compact {
+  grid-template-columns: 1fr 1fr;
+}
+
+.choice {
+  border: 1px solid var(--mf-line);
+  background: var(--mf-card);
+  color: var(--mf-ink);
+  border-radius: 16px;
+  min-height: 64px;
+  padding: 12px;
+  text-align: left;
+  font: inherit;
+}
+
+.choice.wide {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.choice span {
+  color: var(--mf-muted);
+  font-size: 0.86rem;
+}
+
+.choice.active {
+  border-color: #1d6b45;
+  background: #e7f3ec;
+  box-shadow: inset 0 0 0 1px #1d6b45;
+}
+
+.round-button,
+.icon-button,
+.text-button,
+.meal header button,
+.recipe-actions button {
+  border: 0;
+  background: transparent;
+  color: #1d6b45;
+  font: inherit;
+  font-weight: 650;
+}
+
+.round-button,
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #fffdf8;
+  border: 1px solid var(--mf-line);
+}
+
+.hero,
+.card,
+.recipe-card,
+.food-card,
+.state.card {
+  background: var(--mf-card);
+  border: 1px solid var(--mf-line);
+  border-radius: 22px;
+}
+
+.hero {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  margin: 8px 0 18px;
+}
+
+.ring {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  margin: 0 auto;
+}
+
+.ring svg {
+  width: 168px;
+  height: 168px;
+  transform: rotate(-90deg);
+}
+
+.ring circle {
+  fill: none;
+  stroke-width: 10;
+}
+
+.ring .track {
+  stroke: #efe6d8;
+}
+
+.ring .value {
+  stroke: #1d6b45;
+  stroke-linecap: round;
+}
+
+.ring.over .value {
+  stroke: var(--mf-clay);
+}
+
+.ring-copy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-copy strong {
+  font-family: var(--mf-serif);
+  font-size: 2rem;
+}
+
+.ring-copy span,
+.macro small,
+.stat small {
+  color: var(--mf-muted);
+  font-size: 0.82rem;
+}
+
+.macro {
+  margin-bottom: 10px;
+}
+
+.bar {
+  height: 8px;
+  background: #efe6d8;
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+.protein .bar span { background: var(--mf-protein); }
+.carbs .bar span { background: var(--mf-carbs); }
+.fat .bar span { background: var(--mf-fat); }
+
+.meal {
+  margin: 18px 0;
+}
+
+.meal header {
+  align-items: flex-start;
+}
+
+.meal header h2 {
+  margin-bottom: 0;
+}
+
+.meal header button {
+  padding: 0;
+}
+
+.log-item,
+.recipe-card,
+.food-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 8px 0;
+  padding: 12px;
+}
+
+.food-card,
+.recipe-main {
+  border: 0;
+  background: var(--mf-card);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.food-card {
+  border: 1px solid var(--mf-line);
+  border-radius: 18px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.food-card span,
+.log-item p,
+.recipe-main p {
+  margin: 2px 0;
+  color: var(--mf-muted);
+}
+
+.portion-line {
+  color: var(--mf-ink) !important;
+  font-weight: 700;
+}
+
+.recipe-card {
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.recipe-main,
+.recipe-actions {
+  padding: 12px 14px;
+}
+
+.recipe-actions {
+  border-top: 1px solid var(--mf-line);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.stat {
+  background: #f7f1e6;
+  border-radius: 16px;
+  padding: 10px 12px;
+}
+
+.stat.accent {
+  background: #1d6b45;
+  color: #f6f1e6;
+}
+
+.stat.accent small,
+.stat.accent span {
+  color: #d7ecdf;
+}
+
+.stat.wide {
+  grid-column: 1 / -1;
+}
+
+.stat strong {
+  display: block;
+  font-family: var(--mf-serif);
+  font-size: 1.35rem;
+}
+
+.card,
+.state.card {
+  padding: 14px;
+  margin: 12px 0;
+}
+
+.card.warn,
+.warn {
+  background: #fff4e8;
+  border-color: #efd0b2;
+}
+
+.scan-row {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.shot {
+  width: 100%;
+  border-radius: 18px;
+  margin: 12px 0;
+  max-height: 220px;
+  object-fit: cover;
+}
+
+ion-fab {
+  margin-bottom: 16px;
+  margin-inline-end: 8px;
+}
+
+ion-tab-bar {
+  border-top: 1px solid var(--mf-line);
+  padding-bottom: 6px;
+}

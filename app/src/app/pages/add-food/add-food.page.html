@@ -1,0 +1,102 @@
+<ion-header class="mf-header">
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/dashboard" text="Hoy"></ion-back-button></ion-buttons>
+    <ion-title>{{ pickMode() ? 'Ingrediente' : 'Añadir' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <div class="screen">
+    @if (target(); as current) {
+      <section class="card">
+        <p class="eyebrow">{{ current.kind === 'food' ? 'Alimento' : 'Receta' }}</p>
+        <h1>{{ current.kind === 'food' ? current.food.name : current.recipe.name }}</h1>
+        @if (current.kind === 'food' && current.food.brand) {
+          <p class="muted">{{ current.food.brand }} · {{ sourceLabel(current.food.source) }}</p>
+        }
+        <ion-input label="Cantidad" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="quantity()" (ionInput)="quantity.set(number($event))"></ion-input>
+        <div class="choice-grid compact">
+          <button type="button" class="choice" [class.active]="unit() === 'grams'" (click)="unit.set('grams')">Gramos</button>
+          <button type="button" class="choice" [class.active]="unit() === 'portions'" (click)="unit.set('portions')">Porciones</button>
+        </div>
+        @if (current.kind === 'food') {
+          <p class="hint">En alimentos, 1 porción equivale a 100 g.</p>
+        }
+        <p class="eyebrow">Comida</p>
+        <div class="choice-grid compact">
+          @for (item of meals; track item.id) {
+            <button type="button" class="choice" [class.active]="meal() === item.id" (click)="meal.set(item.id)">{{ item.label }}</button>
+          }
+        </div>
+        @if (preview(); as macros) {
+          <div class="stat-grid">
+            <article class="stat accent"><span>Energía</span><strong>{{ kcal(macros.kcal) }}</strong><small>kcal</small></article>
+            <article class="stat"><span>Proteína</span><strong>{{ grams(macros.protein) }} g</strong></article>
+            <article class="stat"><span>Carbos</span><strong>{{ grams(macros.carbs) }} g</strong></article>
+            <article class="stat"><span>Grasas</span><strong>{{ grams(macros.fat) }} g</strong></article>
+          </div>
+        }
+        <div class="action-row">
+          <ion-button fill="clear" (click)="clearTarget()">Cambiar</ion-button>
+          <ion-button (click)="save()" [disabled]="saving()">Registrar</ion-button>
+        </div>
+      </section>
+    } @else {
+      <p class="eyebrow">{{ pickMode() ? 'Para la receta' : 'Catálogo' }}</p>
+      <h1>{{ pickMode() ? 'Elige un ingrediente' : '¿Qué comiste?' }}</h1>
+      @if (!pickMode()) {
+        <div class="choice-grid compact">
+          <button type="button" class="choice" [class.active]="catalog() === 'foods'" (click)="catalog.set('foods')">Alimentos</button>
+          <button type="button" class="choice" [class.active]="catalog() === 'recipes'" (click)="catalog.set('recipes')">Recetas</button>
+        </div>
+      }
+
+      @if (catalog() === 'foods' || pickMode()) {
+        <ion-input label="Buscar por nombre o marca" labelPlacement="stacked" fill="outline" [value]="query()" (ionInput)="onQuery($event)"></ion-input>
+        <div class="scan-row">
+          <ion-input label="Código de barras" labelPlacement="stacked" fill="outline" [value]="barcode()" (ionInput)="barcode.set(text($event))"></ion-input>
+          <ion-button fill="outline" (click)="lookupManual()" [disabled]="scanning()">Buscar código</ion-button>
+          <ion-button (click)="scan()" [disabled]="scanning()">
+            <ion-icon slot="start" name="barcode-outline"></ion-icon>
+            Escanear
+          </ion-button>
+        </div>
+        @if (lookupMessage()) {
+          <div class="card warn">
+            <p>{{ lookupMessage() }}</p>
+            <ion-button fill="clear" (click)="goOcr()">Capturar la tabla con la cámara</ion-button>
+          </div>
+        }
+        @if (loading()) {
+          <p class="state">Buscando…</p>
+        } @else if (error()) {
+          <p class="state">{{ error() }}</p>
+        } @else if (results().length === 0) {
+          <div class="state card">
+            <p>No hay coincidencias.</p>
+            <ion-button fill="clear" (click)="goOcr()">No lo encontré: usar OCR</ion-button>
+          </div>
+        } @else {
+          @for (food of results(); track food.id) {
+            <button type="button" class="food-card" (click)="chooseFood(food)">
+              <strong>{{ food.name }}</strong>
+              <span>{{ food.brand || sourceLabel(food.source) }}</span>
+              <span>{{ kcal(food.kcal_per_100g) }} kcal / 100 g · P {{ grams(food.protein_per_100g) }}</span>
+            </button>
+          }
+        }
+      } @else if (recipes().length === 0) {
+        <div class="state card">
+          <p>No tienes recetas todavía.</p>
+          <ion-button fill="clear" (click)="goRecipes()">Ir al recetario</ion-button>
+        </div>
+      } @else {
+        @for (recipe of recipes(); track recipe.id) {
+          <button type="button" class="food-card" (click)="chooseRecipe(recipe)">
+            <strong>{{ recipe.name }}</strong>
+            <span>{{ kcal(recipe.per_portion.kcal) }} kcal por porción</span>
+          </button>
+        }
+      }
+    }
+  </div>
+</ion-content>

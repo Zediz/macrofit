@@ -1,0 +1,19 @@
+name: macrofit
+services:
+    php:
+        build:
+            context: .
+            dockerfile: docker_php
+        ports:
+            # Cambia APP_PORT en el .env para correr varios proyectos a la vez (8881, 8882...)
+            - "${APP_PORT:-8888}:80"
+        environment:
+            # Solo en local: los errores de PHP llegan con detalle al frontend
+            APP_DEBUG: "true"
+        volumes:
+            - .:/var/www/html
+        networks:
+            - app-network
+networks:
+    app-network:
+        external: true
