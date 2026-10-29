@@ -1,0 +1,65 @@
+<ion-header class="mf-header">
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/recipes" text="Recetas"></ion-back-button></ion-buttons>
+    <ion-title>{{ draft.editingId() === 'new' || draft.editingId() === null ? 'Nueva receta' : 'Editar' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <div class="screen">
+    @if (loading()) {
+      <p class="state">Cargando receta…</p>
+    } @else if (error()) {
+      <p class="state">{{ error() }}</p>
+    } @else {
+      <ion-input label="Nombre" labelPlacement="stacked" fill="outline" [value]="draft.name()" (ionInput)="setName($event)"></ion-input>
+      <ion-textarea label="Descripción" labelPlacement="stacked" fill="outline" [autoGrow]="true" [value]="draft.description()" (ionInput)="setDescription($event)"></ion-textarea>
+      <ion-input label="Porciones" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="draft.servings()" (ionInput)="setServings($event)"></ion-input>
+
+      <div class="top-row">
+        <h2>Ingredientes</h2>
+        <ion-button size="small" fill="outline" (click)="openPicker()">Buscar</ion-button>
+      </div>
+      @if (draft.ingredients().length === 0) {
+        <p class="empty">Agrega alimentos y define los gramos. El total se actualiza al momento.</p>
+      } @else {
+        @for (item of draft.ingredients(); track $index) {
+          <article class="log-item">
+            <div>
+              <strong>{{ item.food_name }}</strong>
+              <ion-input label="Gramos" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="item.grams" (ionInput)="draft.setGrams($index, number($event) ?? 0)"></ion-input>
+            </div>
+            <button type="button" class="icon-button" (click)="draft.remove($index)" [attr.aria-label]="'Quitar ' + item.food_name">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </article>
+        }
+      }
+
+      <section class="card">
+        <p class="eyebrow">Total de la receta</p>
+        <div class="stat-grid">
+          <article class="stat accent"><span>Energía</span><strong>{{ kcal(totals().kcal) }}</strong><small>kcal</small></article>
+          <article class="stat"><span>Proteína</span><strong>{{ grams(totals().protein) }} g</strong></article>
+          <article class="stat"><span>Carbos</span><strong>{{ grams(totals().carbs) }} g</strong></article>
+          <article class="stat"><span>Grasas</span><strong>{{ grams(totals().fat) }} g</strong></article>
+        </div>
+      </section>
+      @if (portion(); as each) {
+        <section class="card">
+          <p class="eyebrow">Por porción</p>
+          <div class="stat-grid">
+            <article class="stat accent"><span>Energía</span><strong>{{ kcal(each.kcal) }}</strong><small>kcal</small></article>
+            <article class="stat"><span>Proteína</span><strong>{{ grams(each.protein) }} g</strong></article>
+            <article class="stat"><span>Carbos</span><strong>{{ grams(each.carbs) }} g</strong></article>
+            <article class="stat"><span>Grasas</span><strong>{{ grams(each.fat) }} g</strong></article>
+          </div>
+        </section>
+      }
+
+      <div class="action-row">
+        <ion-button fill="clear" (click)="cancel()">Cancelar</ion-button>
+        <ion-button (click)="save()" [disabled]="busy()">Guardar receta</ion-button>
+      </div>
+    }
+  </div>
+</ion-content>

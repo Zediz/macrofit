@@ -1,0 +1,19 @@
+FROM php:8.5-apache
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends unzip \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& docker-php-ext-install pdo_mysql mysqli \
+	&& a2enmod rewrite headers \
+	&& printf 'ServerTokens Prod\nServerSignature Off\n' > /etc/apache2/conf-enabled/zz-security.conf
+
+# Composer dentro del contenedor (docker compose exec php composer install)
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Los errores nunca se imprimen como HTML: http.php los devuelve como JSON
+RUN { \
+		echo 'display_errors=Off'; \
+		echo 'log_errors=On'; \
+		echo 'error_log=/dev/stderr'; \
+		echo 'expose_php=Off'; \
+	} > "$PHP_INI_DIR/conf.d/zz-app.ini"

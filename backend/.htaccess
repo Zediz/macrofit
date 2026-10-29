@@ -1,0 +1,18 @@
+Options -Indexes
+RewriteEngine On
+
+# Pasar el header Authorization a PHP (algunos hostings lo eliminan)
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Servir directo solo archivos estáticos que EXISTAN y no estén dentro de src/ ni vendor/
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^(?!(?:src|vendor)/)[^.].*\.(?:png|jpe?g|webp|gif|svg|ico|css|js|pdf|zip)$ - [NC,L]
+
+# Todo lo demás pasa por el front controller
+RewriteRule ^ routes.php [QSA,L]
+
+# Defensa extra si mod_rewrite estuviera deshabilitado: nunca servir archivos sensibles
+<FilesMatch "^\.|\.(?:env|ini|log|sql|sh|bak|lock|yml|yaml|md)$|^(?:composer\.json|docker_php)$">
+	Require all denied
+</FilesMatch>

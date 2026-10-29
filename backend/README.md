@@ -1,0 +1,81 @@
+# Macrofit API
+
+API REST en PHP (controladores atómicos) y MySQL para la app Ionic. El esqueleto de `src/core`, `router.php`, `.htaccess`, `docker_php` y `docker-compose.yml` sigue la arquitectura del proyecto: front controller, JWT por defecto y respuestas JSON.
+
+## Arranque local con Docker
+
+```bash
+cd backend
+cp .env.example .env
+# Sustituye JWT_SECRET. Tiene que ser largo:
+openssl rand -hex 32
+
+docker network create app-network
+docker compose -f docker-compose.mysql.yml up -d
+docker compose up -d --build
+docker compose exec php composer install
+docker compose exec php php -r 'echo "ok\n";'
+docker exec -i mysql mysql -uroot -proot_password < database/schema.sql
+```
+
+La API queda en `http://127.0.0.1:8888` (o el `APP_PORT` del `.env`). `DB_HOST=mysql` funciona dentro de la red de Docker. El contenedor de MySQL publica el puerto **33060** en el host para no chocar con un MySQL local.
+
+No subas `.env` ni `vendor/`.
+
+### Humo
+
+```bash
+./scripts/smoke.sh http://127.0.0.1:8888
+```
+
+Cubre registro, onboarding (Mifflin-St Jeor), alta de alimento, registro en el diario y resumen del día.
+
+## Endpoints
+
+Todas las rutas exigen `Authorization: Bearer <jwt>` salvo registro y login.
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| POST | `/auth/register` | pública |
+| POST | `/auth/login` | pública |
+| GET | `/profile` | usuario del token |
+| PUT | `/profile` | si cambia peso, edad, altura, género o actividad, recalcula metas |
+| POST | `/profile/onboarding` | calcula BMR, TDEE y macros |
+| PUT | `/profile/macros` | porcentajes que deben sumar 100, o `{ "reset": true }` |
+| GET | `/foods/search?q=` | catálogo global |
+| GET | `/foods/barcode/{barcode}` | |
+| GET | `/foods/{id}` | |
+| POST | `/foods` | `source`: `local`, `openfoodfacts` o `ocr` |
+| GET/POST | `/recipes` | |
+| GET/PUT/DELETE | `/recipes/{id}` | solo las del usuario |
+| GET | `/logs?date=YYYY-MM-DD` | |
+| POST | `/logs` | `food_id` o `recipe_id`, no ambos |
+| DELETE | `/logs/{id}` | |
+| GET | `/logs/summary?date=YYYY-MM-DD` | consumido, metas y restante |
+
+El `id` de usuario sale de `Auth::user()`, nunca del cliente.
+
+### Fórmulas
+
+- BMR Mifflin-St Jeor. Hombre: `(10·kg) + (6.25·cm) − (5·edad) + 5`. Mujer: igual, con `− 161`.
+- Actividad: sedentario 1.2, ligero 1.375, moderado 1.55, activo 1.725. TDEE = BMR × multiplicador. La meta de kcal es el TDEE.
+- Macros por defecto: proteína `2 g/kg` (4 kcal/g), grasa 25 % de las kcal (9 kcal/g), carbohidratos el resto (4 kcal/g).
+- Porcentajes manuales sustituyen ese reparto y se conservan al recalcular por un cambio de peso.
+- Receta: suma de `(macro por 1 g × gramos)`. Por porción = total / porciones.
+- Diario, alimento en gramos: `(macro por 100 g / 100) × gramos`.
+- Alimento en `portions`: 1 porción = 100 g, porque el catálogo no guarda un tamaño de porción propio.
+- Receta en `portions`: macros por porción × cantidad. En `grams`: se escala con el peso total de los ingredientes.
+- Los valores guardados se redondean a 2 decimales. `remaining` puede ser negativo si la persona se pasa de la meta.
+- Zona horaria por defecto del “hoy” cuando el cliente no manda fecha: `America/Mexico_City` (`APP_TIMEZONE`).
+
+Género en la API: `male` / `female`. Actividad: `sedentary`, `light`, `moderate`, `active`. Comidas: `breakfast`, `lunch`, `dinner`, `snack`.
+
+## Hostinger (shared hosting)
+
+1. Crea la base MySQL en el panel e importa `database/schema.sql`. Si no puedes ejecutar `CREATE DATABASE`, borra esas dos primeras sentencias e importa el resto con la base ya seleccionada.
+2. En `.env` pon el host remoto (`DB_HOST`, a veces `localhost` o un host `*.hostinger.com`), `DB_NAME=macrofit`, usuario, contraseña y un `JWT_SECRET` nuevo. No pongas `APP_DEBUG=true`.
+3. Sube el proyecto (incluye `vendor/` después de `composer install` en tu máquina si el plan no tiene Composer ni SSH). El document root debe ser la carpeta de la API, donde viven `.htaccess` y `routes.php`.
+4. Apache tiene que permitir `.htaccess` (`AllowOverride All`). El rewrite ya pasa `Authorization` a PHP y manda el resto de peticiones a `routes.php`.
+5. Si la API vive en un subdirectorio (`https://dominio.com/macrofit`), no hace falta reescribir las rutas: `Router` recorta el directorio de `SCRIPT_NAME`. La app Ionic debe usar esa URL como `apiBaseUrl`, con el subdirectorio incluido y sin barra final.
+6. PHP 8.1 o superior. El contenedor de desarrollo usa 8.5; el código no depende de sintaxis posterior a 8.1. Activa `pdo_mysql`.
+7. CORS: en producción define `CORS_ALLOWED_ORIGINS` con el origen de la app. Vacío o ausente equivale a `*`.

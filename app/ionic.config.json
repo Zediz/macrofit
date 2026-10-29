@@ -1,0 +1,7 @@
+{
+  "name": "macrofit",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

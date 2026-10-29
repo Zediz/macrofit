@@ -1,0 +1,48 @@
+<ion-header class="mf-header">
+  <ion-toolbar>
+    <ion-title>Recetas</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <div class="screen">
+    <div class="top-row">
+      <div>
+        <p class="eyebrow">Tu recetario</p>
+        <h1>Porciones listas para el día</h1>
+      </div>
+      <ion-button size="small" (click)="create()">Crear</ion-button>
+    </div>
+
+    @if (loading()) {
+      <p class="state">Cargando recetas…</p>
+    } @else if (error()) {
+      <div class="state">
+        <p>{{ error() }}</p>
+        <button type="button" class="text-button" (click)="load()">Reintentar</button>
+      </div>
+    } @else if (items().length === 0) {
+      <div class="state card">
+        <h2>Todavía no hay recetas</h2>
+        <p>Arma una con alimentos del catálogo. Verás el total y lo que toca por porción antes de guardar.</p>
+        <ion-button (click)="create()">Crear nueva receta</ion-button>
+      </div>
+    } @else {
+      @for (recipe of items(); track recipe.id) {
+        <article class="recipe-card">
+          <button type="button" class="recipe-main" (click)="open(recipe)">
+            <h2>{{ recipe.name }}</h2>
+            <p>{{ recipe.servings }} porciones · {{ grams(recipe.total_grams) }} g en total</p>
+            <p class="portion-line">{{ kcal(recipe.per_portion.kcal) }} kcal por porción</p>
+            <p class="muted">P {{ grams(recipe.per_portion.protein) }} · C {{ grams(recipe.per_portion.carbs) }} · G {{ grams(recipe.per_portion.fat) }}</p>
+          </button>
+          <div class="recipe-actions">
+            <button type="button" (click)="log(recipe)">Añadir al día</button>
+            <button type="button" class="icon-button" (click)="remove(recipe)" [attr.aria-label]="'Eliminar ' + recipe.name">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+        </article>
+      }
+    }
+  </div>
+</ion-content>

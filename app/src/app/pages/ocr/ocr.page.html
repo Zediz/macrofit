@@ -1,0 +1,35 @@
+<ion-header class="mf-header">
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/add-food" text="Buscar"></ion-back-button></ion-buttons>
+    <ion-title>Tabla nutrimental</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <div class="screen">
+    <p class="eyebrow">Producto nuevo</p>
+    <h1>Foto de la etiqueta</h1>
+    <p class="lede">Toma la tabla nutrimental. Vas a revisar los números antes de que entren al catálogo.</p>
+    <ion-button expand="block" (click)="capture()">Abrir cámara</ion-button>
+
+    @if (photo(); as image) {
+      <img class="shot" [src]="image" alt="Foto de la tabla nutrimental" />
+    }
+    @if (simulated()) {
+      <div class="card warn">
+        <strong>Extracción de ejemplo</strong>
+        <p>El OCR todavía es un marcador de posición: no leyó la foto. Corrige nombre, marca y macros por 100 g antes de guardar.</p>
+      </div>
+    }
+
+    <form class="stack" (submit)="$event.preventDefault(); save()">
+      <ion-input label="Nombre" labelPlacement="stacked" fill="outline" [value]="name()" (ionInput)="name.set(text($event))"></ion-input>
+      <ion-input label="Marca" labelPlacement="stacked" fill="outline" [value]="brand()" (ionInput)="brand.set(text($event))"></ion-input>
+      <ion-input label="Código de barras" labelPlacement="stacked" fill="outline" [value]="barcode()" (ionInput)="barcode.set(text($event))"></ion-input>
+      <ion-input label="Kcal por 100 g" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="kcal()" (ionInput)="kcal.set(number($event))"></ion-input>
+      <ion-input label="Proteína por 100 g" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="protein()" (ionInput)="protein.set(number($event))"></ion-input>
+      <ion-input label="Carbohidratos por 100 g" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="carbs()" (ionInput)="carbs.set(number($event))"></ion-input>
+      <ion-input label="Grasas por 100 g" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="fat()" (ionInput)="fat.set(number($event))"></ion-input>
+      <ion-button expand="block" type="submit" [disabled]="busy()">Guardar en el catálogo</ion-button>
+    </form>
+  </div>
+</ion-content>
