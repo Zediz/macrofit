@@ -9,6 +9,7 @@ export interface Food {
   protein_per_100g: number;
   carbs_per_100g: number;
   fat_per_100g: number;
+  serving_grams: number | null;
   source: FoodSource;
   created_by: number | null;
 }
@@ -21,5 +22,6 @@ export interface CreateFood {
   protein_per_100g: number;
   carbs_per_100g: number;
   fat_per_100g: number;
+  serving_grams?: number | null;
   source: FoodSource;
 }

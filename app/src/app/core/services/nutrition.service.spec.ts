@@ -80,10 +80,22 @@ describe('matemática del diario', () => {
     expect(eaten.fat).toBeCloseTo(1.8, 5);
   });
 
-  it('trata una porción de alimento como 100 g', () => {
-    const eaten = logEntryMacros({ kind: 'food', quantity: 2, unit: 'portions', per100: chicken });
-    expect(eaten.kcal).toBe(220);
-    expect(eaten.protein).toBeCloseTo(46.2, 5);
+  it('convierte porciones del alimento con su tamaño en gramos', () => {
+    const eaten = logEntryMacros({
+      kind: 'food',
+      quantity: 1.5,
+      unit: 'portions',
+      servingGrams: 30,
+      per100: { kcal: 200, protein: 10, carbs: 20, fat: 5 },
+    });
+    expect(eaten.kcal).toBeCloseTo(90, 5);
+    expect(eaten.protein).toBeCloseTo(4.5, 5);
+    expect(eaten.carbs).toBeCloseTo(9, 5);
+    expect(eaten.fat).toBeCloseTo(2.25, 5);
+  });
+
+  it('no asume que una porción de alimento son 100 g', () => {
+    expect(() => logEntryMacros({ kind: 'food', quantity: 2, unit: 'portions', per100: chicken })).toThrow(/porción/);
   });
 
   it('multiplica los macros por porción de una receta', () => {

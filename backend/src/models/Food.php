@@ -70,15 +70,16 @@ class Food {
 		if (!in_array($source, array('local', 'openfoodfacts', 'ocr'), true)) {
 			throw new Exception('Origen de alimento no válido', 422);
 		}
+		$serving = self::servingGrams($input['serving_grams'] ?? null);
 		if ($barcode !== null && $this->findByBarcode($barcode)) {
 			throw new Exception('Ese código de barras ya está en el catálogo', 409);
 		}
 		try {
 			$stmt = $this->db->prepare(
 				'INSERT INTO foods
-					(name, brand, barcode, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, source, created_by)
+					(name, brand, barcode, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, serving_grams, source, created_by)
 				 VALUES
-					(:name, :brand, :barcode, :kcal, :protein, :carbs, :fat, :source, :created_by)'
+					(:name, :brand, :barcode, :kcal, :protein, :carbs, :fat, :serving_grams, :source, :created_by)'
 			);
 			$stmt->execute(array(
 				'name' => $name,
@@ -88,6 +89,7 @@ class Food {
 				'protein' => $protein,
 				'carbs' => $carbs,
 				'fat' => $fat,
+				'serving_grams' => $serving,
 				'source' => $source,
 				'created_by' => $userId,
 			));
@@ -110,6 +112,7 @@ class Food {
 			'protein_per_100g' => (float) $row['protein_per_100g'],
 			'carbs_per_100g' => (float) $row['carbs_per_100g'],
 			'fat_per_100g' => (float) $row['fat_per_100g'],
+			'serving_grams' => isset($row['serving_grams']) && $row['serving_grams'] !== null ? (float) $row['serving_grams'] : null,
 			'source' => $row['source'],
 			'created_by' => $row['created_by'] !== null ? (int) $row['created_by'] : null,
 		);
@@ -123,6 +126,17 @@ class Food {
 		$number = filter_var($value, FILTER_VALIDATE_FLOAT);
 		if ($number === false || $number < 0 || $number > 1000) {
 			throw new Exception("El valor de $label por 100 g no es válido", 422);
+		}
+		return round((float) $number, 2);
+	}
+
+	private static function servingGrams($value): ?float {
+		if ($value === null || $value === '') {
+			return null;
+		}
+		$number = filter_var($value, FILTER_VALIDATE_FLOAT);
+		if ($number === false || $number <= 0 || $number > 5000) {
+			throw new Exception('El tamaño de porción en gramos no es válido', 422);
 		}
 		return round((float) $number, 2);
 	}

@@ -61,6 +61,7 @@ put('/profile/macros', 'src/controllers/profile/update_macros.php');
 
 get('/foods/search', 'src/controllers/food/search.php');
 get('/foods/barcode/$barcode', 'src/controllers/food/barcode.php');
+post('/foods/ocr', 'src/controllers/food/ocr.php');
 get('/foods/$food_id', 'src/controllers/food/get.php');
 post('/foods', 'src/controllers/food/create.php');
 

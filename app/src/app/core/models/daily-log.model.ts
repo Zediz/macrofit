@@ -6,6 +6,7 @@ export interface DailyLog {
   food_id: number | null;
   recipe_id: number | null;
   quantity: number;
+  grams: number;
   unit: QuantityUnit;
   meal_type: MealType;
   log_date: string;

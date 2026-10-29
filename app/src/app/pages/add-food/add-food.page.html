@@ -13,13 +13,15 @@
         @if (current.kind === 'food' && current.food.brand) {
           <p class="muted">{{ current.food.brand }} · {{ sourceLabel(current.food.source) }}</p>
         }
-        <ion-input label="Cantidad" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="quantity()" (ionInput)="quantity.set(number($event))"></ion-input>
-        <div class="choice-grid compact">
-          <button type="button" class="choice" [class.active]="unit() === 'grams'" (click)="unit.set('grams')">Gramos</button>
-          <button type="button" class="choice" [class.active]="unit() === 'portions'" (click)="unit.set('portions')">Porciones</button>
-        </div>
-        @if (current.kind === 'food') {
-          <p class="hint">En alimentos, 1 porción equivale a 100 g.</p>
+        <ion-input [label]="quantityLabel()" labelPlacement="stacked" fill="outline" type="number" inputmode="decimal" [value]="quantity()" (ionInput)="quantity.set(number($event))"></ion-input>
+        @if (showUnitToggle()) {
+          <div class="choice-grid compact">
+            <button type="button" class="choice" [class.active]="unit() === 'grams'" (click)="setUnit('grams')">Gramos</button>
+            <button type="button" class="choice" [class.active]="unit() === 'portions'" (click)="setUnit('portions')">Porciones</button>
+          </div>
+        }
+        @if (portionHint(); as hint) {
+          <p class="hint">{{ hint }}</p>
         }
         <p class="eyebrow">Comida</p>
         <div class="choice-grid compact">
@@ -80,7 +82,12 @@
             <button type="button" class="food-card" (click)="chooseFood(food)">
               <strong>{{ food.name }}</strong>
               <span>{{ food.brand || sourceLabel(food.source) }}</span>
-              <span>{{ kcal(food.kcal_per_100g) }} kcal / 100 g · P {{ grams(food.protein_per_100g) }}</span>
+              <span>
+                {{ kcal(food.kcal_per_100g) }} kcal / 100 g · P {{ grams(food.protein_per_100g) }}
+                @if (food.serving_grams) {
+                  · porción {{ grams(food.serving_grams) }} g
+                }
+              </span>
             </button>
           }
         }

@@ -28,7 +28,13 @@ No subas `.env` ni `vendor/`.
 ./scripts/smoke.sh http://127.0.0.1:8888
 ```
 
-Cubre registro, onboarding (Mifflin-St Jeor), alta de alimento, registro en el diario y resumen del día.
+Cubre registro, onboarding (Mifflin-St Jeor), alta de alimento, registro en el diario y resumen del día. También comprueba que editar y borrar una receta no cambia los totales ya guardados, que 1.5 porciones de 30 g se registran como 45 g, y que `POST /foods/ocr` responde 503 si falta `GEMINI_API_KEY` (no llama a Gemini: deja la clave vacía o con el placeholder).
+
+```bash
+php tests/run.php
+```
+
+Esas pruebas cubren la matemática del diario y el cliente de Gemini con respuestas simuladas. `scripts/check-migration.sh` (con el MySQL de Docker ya levantado) aplica la migración sobre una copia del esquema viejo.
 
 ## Endpoints
 
@@ -45,7 +51,8 @@ Todas las rutas exigen `Authorization: Bearer <jwt>` salvo registro y login.
 | GET | `/foods/search?q=` | catálogo global |
 | GET | `/foods/barcode/{barcode}` | |
 | GET | `/foods/{id}` | |
-| POST | `/foods` | `source`: `local`, `openfoodfacts` o `ocr` |
+| POST | `/foods` | `source`: `local`, `openfoodfacts` o `ocr`. `serving_grams` es opcional |
+| POST | `/foods/ocr` | foto en JSON (`image`, data URL o base64) o multipart con el campo `image` |
 | GET/POST | `/recipes` | |
 | GET/PUT/DELETE | `/recipes/{id}` | solo las del usuario |
 | GET | `/logs?date=YYYY-MM-DD` | |
@@ -62,10 +69,12 @@ El `id` de usuario sale de `Auth::user()`, nunca del cliente.
 - Macros por defecto: proteína `2 g/kg` (4 kcal/g), grasa 25 % de las kcal (9 kcal/g), carbohidratos el resto (4 kcal/g).
 - Porcentajes manuales sustituyen ese reparto y se conservan al recalcular por un cambio de peso.
 - Receta: suma de `(macro por 1 g × gramos)`. Por porción = total / porciones.
-- Diario, alimento en gramos: `(macro por 100 g / 100) × gramos`.
-- Alimento en `portions`: 1 porción = 100 g, porque el catálogo no guarda un tamaño de porción propio.
-- Receta en `portions`: macros por porción × cantidad. En `grams`: se escala con el peso total de los ingredientes.
+- Diario, alimento: siempre se guarda en gramos. `(macro por 100 g / 100) × gramos`.
+- Si el alimento tiene `serving_grams` y el cliente manda `unit: portions`, el servidor convierte `gramos = cantidad × serving_grams` (1.5 × 30 g = 45 g) y persiste la entrada en gramos. Sin `serving_grams`, `portions` en un alimento responde 422. Ya no se asume 1 porción = 100 g.
+- Receta en `portions`: macros por porción × cantidad. En `grams`: se escala con el peso total de los ingredientes. Las recetas no cambiaron esa cuenta.
+- Al crear el registro se guardan `item_name`, `grams`, `kcal`, `protein`, `carbs` y `fat`. El listado y el resumen leen esa foto. Editar el alimento o la receta no reescribe el diario. Borrar deja `food_id` o `recipe_id` en NULL y conserva el registro.
 - Los valores guardados se redondean a 2 decimales. `remaining` puede ser negativo si la persona se pasa de la meta.
+- OCR: `GEMINI_API_KEY` (obligatoria para leer etiquetas; créala en https://aistudio.google.com/apikey) y `GEMINI_MODEL` (opcional, por defecto `gemini-2.5-flash`). La clave va en el header, no en la URL. Sin clave la ruta responde 503. Una etiqueta ilegible responde 422. Un fallo de Gemini responde 502 y un tiempo de espera, 504. Si la etiqueta solo trae valores por porción, se convierten a 100 g con los gramos de esa porción.
 - Zona horaria por defecto del “hoy” cuando el cliente no manda fecha: `America/Mexico_City` (`APP_TIMEZONE`).
 
 Género en la API: `male` / `female`. Actividad: `sedentary`, `light`, `moderate`, `active`. Comidas: `breakfast`, `lunch`, `dinner`, `snack`.
